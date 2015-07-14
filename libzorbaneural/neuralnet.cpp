@@ -148,6 +148,8 @@ void ZorbaNN::recursiveTrainBackProp(std::vector<std::vector<double> > data, lon
     for (i=0; i<maxIters ; i++)
     {
         trainBackProp(data[i%j], data[i%j][t]);
+        //TODO is it possible to show somewhere the actual weights?
+        //if (viewweights) saveWeights(fileviewweights);
     }
     //std::cout << std::endl << i << " iterations completed with back propagation "   << "Mean Error: " << rmsError(data[(i-1)%j][t]) << std::endl;
 }
@@ -179,6 +181,7 @@ void ZorbaNN::trainBackProp(std::vector <double> in, double wanted)
         for(int j=0;j<lsize[i];j++){
             for(int k=0;k<lsize[i-1];k++){
                 weights[i][j][k]+=momentum*oldWeights[i][j][k];
+                if (viewweights) saveWeights(fileviewweights);
             }
             weights[i][j][lsize[i-1]]+=momentum*oldWeights[i][j][lsize[i-1]];
         }
@@ -417,6 +420,7 @@ void ZorbaNN::trainGenAlg(std::vector <double> in, double wanted, long maxCrosso
                     for(int k=0;k<lsize[i-1]+1;k++){
                         weights[i][j][k] = population[t][n];
                         n++;
+                        if (viewweights) saveWeights(fileviewweights);
                     }
                 }
             }
@@ -439,6 +443,8 @@ void ZorbaNN::recursiveTrainGenAlg(std::vector<std::vector<double> > data, long 
     for (i=0; i<maxIters ; i++)
     {
         trainGenAlg(data[i%j],data[i%j][t], maxCrossoverNumber);
+        //TODO is it possible to show somewhere the actual weights?
+        //if (viewweights) saveWeights(fileviewweights);
     }
     //std::cout << std::endl << i << " iterations completed with genetic algorithm "   << "Minimum Error: " << myNet->actualMinError << std::endl;
 }

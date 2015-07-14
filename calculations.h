@@ -54,7 +54,15 @@
 #include <QTemporaryFile>
 #include <QSize>
 #include <QMenu>
+#include <QFutureWatcher>
+#include <QTextEdit>
+#include <QTextDocument>
 
+#include <QtConcurrent/QtConcurrent>
+#include <QTimer>
+#include <QTime>
+#include <QFuture>
+#include <QThread>
 #include <QDebug>
 #include <QAction>
 #include <QLocale>
@@ -124,6 +132,10 @@ public:
     int m_width;
     /** last Maxima report */
     QString m_myReport;
-
+    /** the place where I have save the network*/
+    QString NNsavename;
+    /** Would you like to view the weights in real time?*/
+    QString weightssavename;
+    bool viewweights;
 
 };

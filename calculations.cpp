@@ -433,6 +433,10 @@ QString Calculations::trainNN(QTableWidget *table,  QComboBox *func, bool backpr
         
         ZorbaNN *myNet = new ZorbaNN(layers, lSzV, learningRate, momentum);
         myNet->minAcceptableError = pow(10,-4);
+        QByteArray banfc = weightssavename.toLatin1();
+        char *tmcf = banfc.data();
+        myNet->fileviewweights = tmcf;
+        myNet->viewweights = viewweights;
         if (backprop==true) myNet->recursiveTrainBackProp(dataV, m_maxIters);
         if (genalg==true) myNet->recursiveTrainGenAlg(dataV, m_maxIters, maxCrossoverNumber);
         
@@ -468,7 +472,13 @@ QString Calculations::trainNN(QTableWidget *table,  QComboBox *func, bool backpr
             myresult = myresult + vars;
         }
         
-        
+        //here I can save the entire network for reuse
+        if (NNsavename != "") {
+            QByteArray banfc = NNsavename.toLatin1();
+            char *tmc = banfc.data();
+            myNet->saveNetwork(tmc);
+            qDebug() << "Saved neural network in" << NNsavename;
+        }
     } //here ends the "else"
     
     return myresult;

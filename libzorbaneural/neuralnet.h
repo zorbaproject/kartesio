@@ -39,7 +39,7 @@
 #include "neuralnet_global.h"
 
 class ZORBANN_DLLSPEC ZorbaNN
-//class ZorbaNN
+        //class ZorbaNN
 {
 
     //	output of neurons
@@ -92,6 +92,10 @@ public:
 
     double actualMinError = 1000.0;
     double actualMaxError = 1001.0;
+
+    //would you like to view weights (this will slow all the training)
+    bool viewweights =  false;
+    char *fileviewweights;
 
     //	learning rate
     double learningRate;

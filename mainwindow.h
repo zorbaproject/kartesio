@@ -44,7 +44,7 @@ public:
     ~MainWindow();
     void Openarg(QString filename); ///open file
     void opencsv(QString csvfile);
-
+    QTableWidget* tmptable;
 
 private slots:
     void on_pushButton_clicked();
@@ -89,6 +89,7 @@ private slots:
     void on_exportcsv_clicked();
     void on_xrangecng(QCPRange newRange);
     void on_yrangecng(QCPRange newRange);
+    int autorecofinished();
 
 private:
     Ui::centralWidget uid;
@@ -100,10 +101,17 @@ private:
     int genalglimit;
     double myerr;
 
+    void delay( int millisecondsToWait );
     void plot(QTableWidget* table, QString function, bool original, bool funz, bool fittoorig = false); ///draw plot
     void Openfile();  ///open file (without argument)
     void savecsv(QString filen);
     Calculations mycalcs ; //object from class Calculations
+
+
+    int do_autorecognition(QString att);
+
+    QFutureWatcher<int> watcher;
+
 };
 
 class TableNumberItem : public QTableWidgetItem
@@ -135,4 +143,26 @@ public:
     }
 };
 
+class Worker : public QObject {
+    Q_OBJECT
+
+public:
+    Worker(QString filen);
+    ~Worker();
+    QString weightsfile;
+
+public slots:
+    void process();
+
+signals:
+    void finished();
+    void error(QString err);
+
+private:
+    // add your variables here
+    void delay( int millisecondsToWait );
+    QMainWindow* myQMainWindow;
+    QVBoxLayout *layout;
+    QLabel* lineed;
+};
 #endif // MAINWINDOW_H

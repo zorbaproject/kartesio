@@ -187,6 +187,22 @@ MainWindow::MainWindow(QWidget *parent) :
     mycalcs.m_file = "";
     genalglimit = 2000;
 
+    mycalcs.NNsavename = "";
+    QTemporaryFile file;
+    if (file.open()) {
+        mycalcs.NNsavename = file.fileName();
+    }
+    mycalcs.NNsavename = mycalcs.NNsavename +"znn";
+
+    mycalcs.viewweights = false;
+    QTemporaryFile filen;
+    if (filen.open()) {
+        mycalcs.weightssavename = filen.fileName();
+    }
+    mycalcs.weightssavename = mycalcs.weightssavename +".zwf";
+    qDebug() << "Eventually saving weights in " << mycalcs.weightssavename;
+    qDebug() << "You can watch weights on a Unix system with this command: " << QString("watch -n 1 cat ")+mycalcs.weightssavename;
+
     uid.totalrows->setValue(50);
     uid.resolution->setValue(10);
     
@@ -211,6 +227,8 @@ MainWindow::MainWindow(QWidget *parent) :
 
     connect( uid.qcplotwidget->xAxis,SIGNAL(rangeChanged(QCPRange)),this, SLOT(on_xrangecng(QCPRange)));
     connect( uid.qcplotwidget->yAxis,SIGNAL(rangeChanged(QCPRange)),this, SLOT(on_yrangecng(QCPRange)));
+
+    connect(&watcher, SIGNAL(finished()), this, SLOT(autorecofinished()));
 
     on_actionNew_triggered();
 
@@ -257,15 +275,6 @@ MainWindow::~MainWindow()
     //delete mycalcs;
 }
 
-/*void MainWindow::on_sort_clicked()
-{
-    for (int i=0; i<uid.tableWidget->rowCount() ; i++) {
-        if (!uid.tableWidget->item(i,0) || uid.tableWidget->item(i,0)->text().isEmpty()) {
-            uid.tableWidget->removeRow(i);
-        }
-    }
-    uid.tableWidget->sortItems(1, Qt::AscendingOrder);
-}*/
 
 void MainWindow::on_pushButton_clicked()
 {
@@ -377,7 +386,6 @@ void MainWindow::plot(QTableWidget *table, QString function, bool original, bool
         if (uid.showerror->isChecked() && !(function.isEmpty())) {
             QString error = tr("RMS error: ");
             //if the error is too little, it is quite zero
-            //double myerr = mycalcs.rmsError(table, function);
             myerr = mycalcs.rmsError(table, function);
             if (myerr<pow(10,-10)) myerr = 0.0;
             error = error +  QString::number(myerr);
@@ -391,8 +399,6 @@ void MainWindow::plot(QTableWidget *table, QString function, bool original, bool
             textLabelRMS->setPen(QPen(Qt::red)); // show black border around text
         }
         //now we can plot the values
-        //QVarLengthArray<double, 64> px(table->rowCount());
-        //QVarLengthArray<double, 64> py(table->rowCount());
         int totaldata=0;
         for (int i=0; i<table->rowCount() ; i++) {
             if (!table->item(i,0) || table->item(i,0)->text().isEmpty()) {
@@ -542,7 +548,9 @@ void MainWindow::on_actionShow_example_triggered()
     //uid.function->setText("y=(a*(x^3))+(b*(x^2))+(c*x)+d");
     //uid.function->setText("y=a*sin(x)+b");
     uid.showerror->setChecked(true);
+    delay(100);
     drawpl();
+    delay(1000); //apparently, qcplotwidget crashed the entire application if multiple replots are called immediately one after the other... we need to wait a little before being able to replot without problems
     on_fittoorig_clicked();
     uid.backprop->setChecked(true);
     uid.genalg->setChecked(true);
@@ -553,7 +561,6 @@ void MainWindow::on_actionShow_example_triggered()
 
 void MainWindow::on_actionOpen_triggered() {
     mycalcs.m_file = QFileDialog::getOpenFileName(this, tr("Open work"), QDir::currentPath(), "*.kartesio|Kartesio File (*.kartesio)"); //     getOpenFileName(this,"Open work","","Kartesio File (*.kartesio)");
-    //QFileDialog::getOpenFileName(this,tr("Open Image"), "/home/jana", tr("Image Files (*.png *.jpg *.bmp)"));
     Openfile();
 }
 
@@ -974,9 +981,57 @@ void MainWindow::on_actionReplace_triggered(){
 }
 
 void MainWindow::on_autorecognition_triggered() {
+    mycalcs.viewweights = true;
+
+    if (mycalcs.viewweights) {
+        QThread* thread = new QThread;
+        Worker* worker = new Worker(mycalcs.weightssavename);
+        worker->moveToThread(thread);
+        //connect(worker, SIGNAL(error(QString)), this, SLOT(errorString(QString)));
+        connect(thread, SIGNAL(started()), worker, SLOT(process()));
+        connect(worker, SIGNAL(finished()), thread, SLOT(quit()));
+        connect(worker, SIGNAL(finished()), worker, SLOT(deleteLater()));
+        connect(thread, SIGNAL(finished()), thread, SLOT(deleteLater()));
+        thread->start();
+        QString att = QInputDialog::getText(this, tr("Question"), tr("How many times should I look for every type of function?"), QLineEdit::Normal,QString("5"));
+        QFuture<int> f1 = QtConcurrent::run(this, &MainWindow::do_autorecognition, att);
+        watcher.setFuture(f1);
+    } else {
+        QString att = QInputDialog::getText(this, tr("Question"), tr("How many times should I look for every type of function?"), QLineEdit::Normal,QString("5"));
+        do_autorecognition(att);
+        autorecofinished();
+    }
+
+
+}
+
+int MainWindow::autorecofinished(){
+    qDebug()<<"recognition finished";
+    QString best = "";
+    QString bestname = "";
+    QTableWidgetItem *titemo = tmptable->item(0,0) ;
+    if (titemo) bestname = titemo->text();
+    QTableWidgetItem *titem = tmptable->item(0,1) ;
+    if (titemo) best = titem->text();
+
+    QMessageBox::information(this,tr("Done"), tr("The best fit curve is ")+bestname+tr(", with a RMS error of ")+best+tr("."));
+    uid.result->setText(bestname);
+    uid.qcplotwidget->clearItems();
+    QString error = tr("RMS error: ")+best;
+    QCPItemText *textLabelRMS = new QCPItemText(uid.qcplotwidget);
+    uid.qcplotwidget->addItem(textLabelRMS);
+    textLabelRMS->setPositionAlignment(Qt::AlignTop|Qt::AlignHCenter);
+    textLabelRMS->position->setType(QCPItemPosition::ptAxisRectRatio);
+    textLabelRMS->position->setCoords(0.5, 0); // place position at center/top of axis rect
+    textLabelRMS->setText(error);
+    textLabelRMS->setFont(QFont(font().family(), 10));
+    textLabelRMS->setPen(QPen(Qt::red));
+    uid.qcplotwidget->replot();
+}
+
+int MainWindow::do_autorecognition(QString att) {
 
     //QMessageBox::information(this,tr("Please wait"), tr("Please, wait while I'm trying to recognize the correct best fit curve. Kartesio may not respond to the operating system until the operation is finished. It'll need a while, take yourself a coffee."));
-
     uid.showerror->setChecked(true);
     drawpl();
     on_fittoorig_clicked();
@@ -984,12 +1039,10 @@ void MainWindow::on_autorecognition_triggered() {
     uid.genalg->setChecked(true);
     uid.tabWidget->setCurrentIndex(1);
 
-    //uid.maxIters->setValue(genalglimit);
     genalglimitalert = "";
-    QString att = QInputDialog::getText(this, tr("Question"), tr("How many times should I look for every type of function?"), QLineEdit::Normal,QString("5"));
     int attemptsforeveryfunc= att.toInt();
 
-    QTableWidget* tmptable = new QTableWidget(this);
+    tmptable = new QTableWidget(this);
     tmptable->setColumnCount(2);
     tmptable->setRowCount(uid.comboBox->count()*attemptsforeveryfunc);
 
@@ -1043,17 +1096,89 @@ void MainWindow::on_autorecognition_triggered() {
     //this is if you want to know which one is the worst fit
     /*QTableWidgetItem *titemo = tmptable->item(tmptable->rowCount()-1,1) ;
      if (titemo) worst = titemo->text();*/
-    QMessageBox::information(this,tr("Done"), tr("The best fit curve is ")+bestname+tr(", with a RMS error of ")+best+tr("."));
-    uid.result->setText(bestname);
-    uid.qcplotwidget->clearItems();
-    QString error = tr("RMS error: ")+best;
-    QCPItemText *textLabelRMS = new QCPItemText(uid.qcplotwidget);
-    uid.qcplotwidget->addItem(textLabelRMS);
-    textLabelRMS->setPositionAlignment(Qt::AlignTop|Qt::AlignHCenter);
-    textLabelRMS->position->setType(QCPItemPosition::ptAxisRectRatio);
-    textLabelRMS->position->setCoords(0.5, 0); // place position at center/top of axis rect
-    textLabelRMS->setText(error);
-    textLabelRMS->setFont(QFont(font().family(), 10));
-    textLabelRMS->setPen(QPen(Qt::red)); // show black border around text
-    uid.qcplotwidget->replot();
+    return 0;
+}
+
+Worker::Worker(QString filen) {
+    // you could copy data from constructor arguments to internal variables here.
+
+    myQMainWindow = new QMainWindow();
+    //We don't want a modal window Qt::WindowModal Qt::ApplicationModal
+    myQMainWindow->setWindowModality(Qt::NonModal);
+    //myQMainWindow->setGeometry(20,20,200,50);
+
+    QWidget *mwidget = new QWidget();
+    myQMainWindow->setCentralWidget(mwidget);
+    layout = new QVBoxLayout(mwidget);
+    myQMainWindow->setLayout(layout);
+
+    weightsfile = filen;
+
+    lineed = new QLabel();
+    layout->addWidget(lineed);
+    lineed->setTextFormat(Qt::RichText);
+    lineed->setAlignment(Qt::AlignCenter);
+    lineed->setText(weightsfile);
+
+    myQMainWindow->show();
+}
+
+Worker::~Worker() {
+    // free memory
+}
+
+void Worker::process() {
+    while ( 1>0 ) {
+        if (QFile(weightsfile).exists()){
+            QFile file(weightsfile);
+            if (file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+                QTextStream in(&file);
+
+                QString line = in.readLine();
+                QString clean = line.left(line.length()-1);
+                if (clean.count("|")!=0) {
+                    int spaces = int(clean.length()/clean.count("|"));
+
+                    //the neural network has two layers: the first has a number of neurons equal to the number of curve coefficients. Instead, the last layer has only one neuron. Every neuron of first layer is linked to the neuron in the second layer with a weight.
+                    QString formatted = "<b>";
+                    for (int i = 0; i<clean.count("|"); i++) {
+                        formatted = formatted + QString("I");
+                        if (i!=clean.count("|")-1) for (int n = 0; n<spaces; n++) formatted = formatted + QString("-");
+                    }
+                    formatted = formatted + QString("</b><br>") + clean.left(clean.length()-1) + QString("<br>");
+                    for (int i = 0; i<clean.count("|"); i++) {
+                        if (i<(clean.count("|")/2)) formatted = formatted + QString("\\");
+                        if (i==(clean.count("|")/2) && (clean.count("|")%2)!=0) formatted = formatted + QString("I");
+                        if (i==(clean.count("|")/2) && (clean.count("|")%2)==0) formatted = formatted + QString("/");
+                        if (i>(clean.count("|")/2)) formatted = formatted + QString("/");
+
+                        if (i!=clean.count("|")-1) for (int n = 0; n<spaces; n++) formatted = formatted + QString("-");
+                    }
+                    formatted = formatted + QString("<br><b>O</b>");
+                    lineed->setText(formatted);
+                }
+            }
+
+        }
+        delay(100);
+    }
+    //emit finished();
+}
+
+void Worker::delay( int millisecondsToWait )
+{
+    QTime dieTime = QTime::currentTime().addMSecs( millisecondsToWait );
+    while( QTime::currentTime() < dieTime )
+    {
+        QCoreApplication::processEvents( QEventLoop::AllEvents, 100 );
+    }
+}
+
+void MainWindow::delay( int millisecondsToWait )
+{
+    QTime dieTime = QTime::currentTime().addMSecs( millisecondsToWait );
+    while( QTime::currentTime() < dieTime )
+    {
+        QCoreApplication::processEvents( QEventLoop::AllEvents, 100 );
+    }
 }

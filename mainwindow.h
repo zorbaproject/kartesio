@@ -85,6 +85,8 @@ private slots:
     void on_actionAboutZorbaNN_triggered();
     void on_autorecognition_triggered();
     void on_loadcsv_clicked();
+    void on_savenet_triggered();
+    void on_loadnet_triggered();
 
     void on_exportcsv_clicked();
     void on_xrangecng(QCPRange newRange);

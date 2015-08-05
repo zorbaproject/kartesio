@@ -137,5 +137,7 @@ public:
     /** Would you like to view the weights in real time?*/
     QString weightssavename;
     bool viewweights;
+    /** Would you like to load a pre-saved network?*/
+    QString loadnetwork;
 
 };

@@ -437,6 +437,18 @@ QString Calculations::trainNN(QTableWidget *table,  QComboBox *func, bool backpr
         char *tmcf = banfc.data();
         myNet->fileviewweights = tmcf;
         myNet->viewweights = viewweights;
+
+        if (loadnetwork != "") {
+            std::cout << "Actual weights:";
+            myNet->printWeights();
+            QByteArray banfcn = loadnetwork.toLatin1();
+            char *tmcfn = banfcn.data();
+            myNet->setNetwork(tmcfn);
+            loadnetwork = "";
+            std::cout << "Loaded weights:";
+            myNet->printWeights();
+        }
+
         if (backprop==true) myNet->recursiveTrainBackProp(dataV, m_maxIters);
         if (genalg==true) myNet->recursiveTrainGenAlg(dataV, m_maxIters, maxCrossoverNumber);
         
@@ -477,7 +489,7 @@ QString Calculations::trainNN(QTableWidget *table,  QComboBox *func, bool backpr
             QByteArray banfc = NNsavename.toLatin1();
             char *tmc = banfc.data();
             myNet->saveNetwork(tmc);
-            qDebug() << "Saved neural network in" << NNsavename;
+            //qDebug() << "Saved neural network in" << NNsavename;
         }
     } //here ends the "else"
     

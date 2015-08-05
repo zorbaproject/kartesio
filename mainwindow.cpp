@@ -91,6 +91,13 @@ MainWindow::MainWindow(QWidget *parent) :
     autorecognitionAction->setText(tr("Automatic recognize shape"));
     //autorecognitionAction->setIcon(QIcon(":/icons/kate.png"));
 
+    QAction*savenetAction = new QAction(this);
+    savenetAction->setText(tr("Save current network in file"));
+
+    QAction*loadnetAction = new QAction(this);
+    loadnetAction->setText(tr("Load network form file and run"));
+    //autorecognitionAction->setIcon(QIcon(":/icons/kate.png"));
+
     QAction* exampleAction = new QAction(this);
     exampleAction->setText(tr("Show &Example"));
     exampleAction->setShortcut(Qt::CTRL | Qt::Key_E);
@@ -122,6 +129,7 @@ MainWindow::MainWindow(QWidget *parent) :
 
     QMenu* fileMenu = new QMenu("File", this);
     QMenu* dataMenu = new QMenu("Data", this);
+    QMenu* NNMenu = new QMenu("Neural Network", this);
     QMenu* plotMenu = new QMenu("Plot", this);
     QMenu* helpMenu = new QMenu("Help", this);
     fileMenu->addAction(clearAction);
@@ -133,7 +141,9 @@ MainWindow::MainWindow(QWidget *parent) :
     dataMenu->addAction(replaceAction);
     dataMenu->addAction(opencsvAction);
     dataMenu->addAction(savecsvAction);
-    plotMenu->addAction(autorecognitionAction);
+    NNMenu->addAction(autorecognitionAction);
+    NNMenu->addAction(savenetAction);
+    NNMenu->addAction(loadnetAction);
     plotMenu->addAction(plotAction);
     plotMenu->addAction(expsvgAction);
     plotMenu->addAction(exptexAction);
@@ -144,6 +154,7 @@ MainWindow::MainWindow(QWidget *parent) :
     helpMenu->addAction(aboutQtAction);
     menuBar()->addMenu(fileMenu);
     menuBar()->addMenu(dataMenu);
+    menuBar()->addMenu(NNMenu);
     menuBar()->addMenu(plotMenu);
     menuBar()->addMenu(helpMenu);
 
@@ -170,6 +181,8 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(aboutQtAction,SIGNAL(triggered(bool)),this,SLOT(on_actionAboutQt_triggered()));
     connect(aboutZorbaNNAction,SIGNAL(triggered(bool)),this,SLOT(on_actionAboutZorbaNN_triggered()));
     connect(autorecognitionAction,SIGNAL(triggered(bool)),this,SLOT(on_autorecognition_triggered()));
+    connect(savenetAction,SIGNAL(triggered(bool)),this,SLOT(on_savenet_triggered()));
+    connect(loadnetAction,SIGNAL(triggered(bool)),this,SLOT(on_loadnet_triggered()));
 
     QWidget *widget = new QWidget( this );
     uid.setupUi(widget);
@@ -188,6 +201,7 @@ MainWindow::MainWindow(QWidget *parent) :
     genalglimit = 2000;
 
     mycalcs.NNsavename = "";
+    mycalcs.loadnetwork = "";
     QTemporaryFile file;
     if (file.open()) {
         mycalcs.NNsavename = file.fileName();
@@ -981,7 +995,9 @@ void MainWindow::on_actionReplace_triggered(){
 }
 
 void MainWindow::on_autorecognition_triggered() {
-    mycalcs.viewweights = true;
+    mycalcs.viewweights = false;
+    QMessageBox::StandardButton reply = QMessageBox::question(this, tr("View Neural Network"),tr("Would you like to view the neural network structure while it's performing the automatic recognition?"), QMessageBox::Yes|QMessageBox::No);
+    if (reply == QMessageBox::Yes) mycalcs.viewweights = true;
 
     if (mycalcs.viewweights) {
         QThread* thread = new QThread;
@@ -1181,4 +1197,44 @@ void MainWindow::delay( int millisecondsToWait )
     {
         QCoreApplication::processEvents( QEventLoop::AllEvents, 100 );
     }
+}
+
+void MainWindow::on_savenet_triggered()
+{
+
+    QString tmpfile = QFileDialog::getSaveFileName(this, tr("Save Neural Network"), QDir::currentPath(), "*.znn|Kartesio File (*.znn)");
+    if (tmpfile.mid(0,(tmpfile.length()-4)) != ".znn") tmpfile.append(".znn");
+    QString tmpweights = tmpfile.mid(0,(tmpfile.length()-4));
+    QString tmpold = tmpfile.mid(0,(tmpfile.length()-4));
+    QString tmppop = tmpfile.mid(0,(tmpfile.length()-4));
+    tmpweights.append("-weights.zwf");
+    tmpold.append("-oldweights.zwf");
+    tmppop.append("-population.zpf");
+
+    QString otmpfile = mycalcs.NNsavename;
+    QString otmpweights = otmpfile.mid(0,(otmpfile.length()-4));
+    QString otmpold = otmpfile.mid(0,(otmpfile.length()-4));
+    QString otmppop = otmpfile.mid(0,(otmpfile.length()-4));
+    otmpweights.append("-weights.zwf");
+    otmpold.append("-oldweights.zwf");
+    otmppop.append("-population.zpf");
+
+    if (QFile::exists(tmpfile))    QFile::remove(tmpfile);
+    QFile::copy(otmpfile, tmpfile);
+
+    if (QFile::exists(tmpweights))    QFile::remove(tmpweights);
+    QFile::copy(otmpweights, tmpweights);
+
+    if (QFile::exists(tmpold))    QFile::remove(tmpold);
+    QFile::copy(otmpold, tmpold);
+
+    if (QFile::exists(tmppop))    QFile::remove(tmppop);
+    QFile::copy(otmppop, tmppop);
+
+}
+
+void MainWindow::on_loadnet_triggered()
+{
+    mycalcs.loadnetwork = QFileDialog::getOpenFileName(this, tr("Save Neural Network"), QDir::currentPath(), "*.znn|Kartesio File (*.znn)");
+    QMessageBox::information(this, tr("Ready for best fit"),tr("Neural network loaded, now please press Best Fit button to start using it."));
 }

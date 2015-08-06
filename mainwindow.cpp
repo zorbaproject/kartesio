@@ -265,7 +265,7 @@ MainWindow::MainWindow(QWidget *parent) :
     if ((mycalcs.maximap.isEmpty()) || (!QFile(mycalcs.maximap).exists())) {
         mycalcs.maximap = "/usr/bin/maxima";
         if (!QFile(mycalcs.maximap).exists()) {
-            mycalcs.maximap = QDir::currentPath()+ "/maxima/maxima.exe";
+            mycalcs.maximap = QDir::currentPath()+ "/Maxima/bin/maxima.bat";
             if (!QFile(mycalcs.maximap).exists()) {
                 mycalcs.maximap = QInputDialog::getText(this, tr("Maxima not found"), tr("I couldn't find the program 'maxima'. If you know its position, write it here:"), QLineEdit::Normal);
 

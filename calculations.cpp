@@ -430,7 +430,7 @@ QString Calculations::trainNN(QTableWidget *table,  QComboBox *func, bool backpr
         double learningRate = 0.1;
         double momentum = 0.1;
         int maxCrossoverNumber = 200;
-        
+
         ZorbaNN *myNet = new ZorbaNN(layers, lSzV, learningRate, momentum);
         myNet->minAcceptableError = pow(10,-4);
         QByteArray banfc = weightssavename.toLatin1();
@@ -492,7 +492,7 @@ QString Calculations::trainNN(QTableWidget *table,  QComboBox *func, bool backpr
             //qDebug() << "Saved neural network in" << NNsavename;
         }
     } //here ends the "else"
-    
+
     return myresult;
 }
 

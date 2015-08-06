@@ -37,7 +37,6 @@ ZorbaNN::ZorbaNN(int nl,std::vector<int> sz, double learn,double mom)
 
     //resizing vectors
 
-    //std::vector<int> lsize;
     lsize.resize(layers);
 
     for(int i=0;i<layers;i++){
@@ -627,7 +626,8 @@ void ZorbaNN::resizeVectors(){
     for (int i=0; i<layers;i++) {
         weights[i].resize(lsize[i]);
         for (int j=0; j<lsize[i];j++) {
-            weights[i][j].resize(lsize[i-1]+1);
+            if (lsize[i-1]+1 > 0) weights[i][j].resize(lsize[i-1]+1);
+            if (lsize[i-1]+1 <= 0) weights[i][j].resize(1);
         }
     }
 
@@ -637,7 +637,8 @@ void ZorbaNN::resizeVectors(){
     for (int i=0; i<layers;i++) {
         oldWeights[i].resize(lsize[i]);
         for (int j=0; j<lsize[i];j++) {
-            oldWeights[i][j].resize(lsize[i-1]+1);
+            if (lsize[i-1]+1 > 0) oldWeights[i][j].resize(lsize[i-1]+1);
+            if (lsize[i-1]+1 <= 0) oldWeights[i][j].resize(1);
         }
     }
 
@@ -655,6 +656,7 @@ void ZorbaNN::resizeVectors(){
     for (int j=0; j<MAXpopulation;j++) {
         population[j].resize(length+1);
     }
+
 }
 
 //generate initial weights

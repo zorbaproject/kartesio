@@ -34,12 +34,12 @@
 #include <string>
 #include <iomanip>
 #include <sstream>
+#include <time.h>
 
-//#include <neuralnet_global.h>
-#include "neuralnet_global.h"
+//#include "neuralnet_global.h"
+//class ZORBANN_DLLSPEC ZorbaNN
 
-class ZORBANN_DLLSPEC ZorbaNN
-        //class ZorbaNN
+class ZorbaNN
 {
 
     //	output of neurons

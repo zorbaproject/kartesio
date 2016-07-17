@@ -1,4 +1,4 @@
-/***************************************************************************
+ /***************************************************************************
  *   Zorba Neural Network (ZorbaNeural, or ZorbaNN) is a feed forward      *
  *   neural network. The network is pretty flexible and can be used        *
  *   almost for every I.A. application. The network supports multiple      *
@@ -299,7 +299,7 @@ void ZorbaNN::crossover(std::vector <double> RNAA, std::vector <double> RNAB, in
     crossRNA1[0] = error1;
     crossRNA2[0] = error2;
 
-    if ((crossRNA2[0]<actualMinError)&&(crossRNA2[0]>(minAcceptableError))) {     //if the error is too little, something is going wrong
+    if ((crossRNA1[0]<actualMinError)&&(crossRNA1[0]>(minAcceptableError))) {     //if the error is too little, something is going wrong
         //adding first chromosome at the population vector
         for (int i = 0; i<MAXpopulation; i++) {
             if ((population[i][0]==actualMaxError)||(i==(MAXpopulation-1))) {
